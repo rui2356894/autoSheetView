@@ -16,15 +16,15 @@ public protocol SheetViewDataSource: NSObjectProtocol {
     /// - Parameters:
     ///   - sheetView: 控件
     ///   - data: 内容数据
-    ///   - index: 索引
-    func  sheetView(_ sheetView: SheetView, cellForData data: Any, contentForIndexAt index: Int) -> UICollectionViewCell
+    ///   - indexPath: 索引(原本我只返回第几列 因为之前是用hash可以直接取值 现在是any类型数组 遍历成本太大 只能暴露出接口 注意这里索引位置 和真实数据位置差1 头部不是数据)
+    func  sheetView(_ sheetView: SheetView, cellForData data: Any, contentForIndexAt indexPath: IndexPath) -> UICollectionViewCell
     
     /// 返回头部cell
     /// - Parameters:
     ///   - sheetView: 控件
     ///   - data: 数据
-    ///   - index: 索引
-    func  sheetView(_ sheetView: SheetView, cellForData data: Any?, headerForIndexAt index:Int) -> UICollectionViewCell
+    ///   - indexPath: 索引
+    func  sheetView(_ sheetView: SheetView, cellForData data: Any?, headerForIndexAt indexPath:IndexPath) -> UICollectionViewCell
     
     /// 返回补充视图cell
     /// - Parameters:

@@ -189,30 +189,30 @@ public class SheetView: UIView,UICollectionViewDelegate, UICollectionViewDataSou
         return self.rowCount
     }
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-           guard let delegate = self.delegate,
-                     indexPath.item != self.rowCount else {return}
-           let isTap = self.needGstures.rawValue == 1
-           if indexPath.section == 0 {
-               collectionView.deselectItem(at: indexPath, animated: false)
-               delegate.sheetView(self, didSelectItemAt: indexPath.item, headerForData:nil, isTapGesture: isTap)
-           }else{
-               let sectionData = self.contentData[indexPath.section - 1]
-               if delegate.sheetView(self, tapHasSupplementForSectionAtData: sectionData) {
+        guard let delegate = self.delegate,
+            indexPath.item != self.rowCount else {return}
+        let isTap = self.needGstures.rawValue == 1
+        if indexPath.section == 0 {
+            collectionView.deselectItem(at: indexPath, animated: false)
+            delegate.sheetView(self, didSelectItemAt: indexPath.item, headerForData:nil, isTapGesture: isTap)
+        }else{
+            let sectionData = self.contentData[indexPath.section - 1]
+            if delegate.sheetView(self, tapHasSupplementForSectionAtData: sectionData) {
                 // 需要附属视图
-                   var indexitem = IndexSet.init()
-                   for index in 0..<self.rowCount{
-                       indexitem.update(with: index)
-                       let indexPathCell = IndexPath(item: index, section: indexPath.section)
-                       collectionView.selectItem(at: indexPathCell, animated: false,scrollPosition:[])
-                   }
+                var indexitem = IndexSet.init()
+                for index in 0..<self.rowCount{
+                    indexitem.update(with: index)
+                    let indexPathCell = IndexPath(item: index, section: indexPath.section)
+                    collectionView.selectItem(at: indexPathCell, animated: false,scrollPosition:[])
+                }
                 self.hasSupplementData.append(sectionData)
                 self.viewLayout.selectItem(indexPath: indexPath, collectionView: collectionView)
-               }
+            }
             self.selectIndex = indexPath.section - 1
-               delegate.sheetView(self, didSelectItemAt: indexPath.item, contentForData: sectionData, isTapGesture:isTap)
-               
-           }
-       }
+            delegate.sheetView(self, didSelectItemAt: indexPath.item, contentForData: sectionData, isTapGesture:isTap)
+            
+        }
+    }
     public func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
         guard let delegate = self.delegate,
             indexPath.item != self.rowCount else {return}
@@ -246,10 +246,10 @@ public class SheetView: UIView,UICollectionViewDelegate, UICollectionViewDataSou
         }
         if indexPath.section == 0 {
             // 返回头部
-            let cell = dataSource.sheetView(self, cellForData: nil, headerForIndexAt: indexPath.item)
+            let cell = dataSource.sheetView(self, cellForData: nil, headerForIndexAt: indexPath)
             if let c = cell as? SheetViewCell {
-            c.sectiondata = nil
-            return c
+                c.sectiondata = nil
+                return c
             }
             return cell
         }
@@ -258,17 +258,85 @@ public class SheetView: UIView,UICollectionViewDelegate, UICollectionViewDataSou
             let cell =  dataSource.sheetView(self, cellForData:self.contentData[indexPath.section - 1], supplementViewForSectionAt: indexPath.section)
             return cell
         }
-        let cell = dataSource.sheetView(self, cellForData: self.contentData[indexPath.section - 1], contentForIndexAt: indexPath.item)
+        let cell = dataSource.sheetView(self, cellForData: self.contentData[indexPath.section - 1], contentForIndexAt: indexPath)
         if indexPath.section == self.HighlightedIndex {
             cell.isHighlighted = true
         }else{
             cell.isHighlighted = false
         }
         if let c = cell as? SheetViewCell {
-        c.sectiondata = self.contentData[indexPath.section - 1]
-        return c
+            c.sectiondata = self.contentData[indexPath.section - 1]
+            return c
         }
         return cell
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        let btmTag = 4802
+        var btmLine = cell.contentView.viewWithTag(btmTag)
+        
+        if btmLine == nil {
+            let bLine = UIView.init()
+            bLine.backgroundColor = self.seperatorColor
+            bLine.translatesAutoresizingMaskIntoConstraints = false
+            bLine.tag = btmTag
+            cell.contentView.addSubview(bLine)
+            
+            cell.contentView.addConstraint(NSLayoutConstraint.init(item:bLine, attribute: .bottom, relatedBy: .equal, toItem: cell.contentView, attribute: .bottom, multiplier: 1, constant: 0))
+            cell.contentView.addConstraint(NSLayoutConstraint.init(item:bLine, attribute: .left, relatedBy: .equal, toItem: cell.contentView, attribute: .left, multiplier: 1, constant: 0))
+            cell.contentView.addConstraint(NSLayoutConstraint.init(item:bLine, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: self.collectionView.frame.width))
+            cell.contentView.addConstraint(NSLayoutConstraint.init(item:bLine, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 1.0 / UIScreen.main.scale))
+            
+            btmLine = bLine
+        }
+        btmLine?.backgroundColor = self.seperatorColor
+        if indexPath.section == 0 || indexPath.row != 0  {
+            btmLine?.isHidden = true
+        }else{
+            btmLine?.isHidden = false
+        }
+        guard let delegate = self.delegate else { return }
+        if indexPath.section == 0 {
+            delegate.sheetView(self, willDisplay: 0, cellForData: nil, headerforIndex: indexPath.item)
+            return
+        }
+        if indexPath.item == self.rowCount {
+            delegate.sheetView(self, willDisplay: indexPath.section-1, cellForData: nil, supplementViewForSection: indexPath.item)
+            return
+        }
+        // -1 是为了拿数据 索引等于0时候是头部 不是数据
+        self.screenData.insert(indexPath.section - 1)
+        delegate.sheetView(self, willDisplay: indexPath.section-1, cellForData: self.contentData[indexPath.section - 1], contentForIndex: indexPath.item)
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard let delegate = self.delegate else { return }
+        if indexPath.section == 0 {
+            delegate.sheetView(self, didEndDisplaying: 0, cellForData: nil, headerforIndex: indexPath.item)
+            return
+        }
+        if indexPath.item == self.rowCount {
+            delegate.sheetView(self, didEndDisplaying: indexPath.section - 1, cellForData: nil, supplementViewForSection: indexPath.item)
+            return
+        }
+        self.screenData.remove(indexPath.section - 1)
+        delegate.sheetView(self, didEndDisplaying: indexPath.section - 1, cellForData: self.contentData[indexPath.section - 1], contentForIndex: indexPath.item)
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, didHighlightItemAt indexPath: IndexPath) {
+        let cell = collectionView.cellForItem(at: indexPath)
+        cell?.isHighlighted = false
+    }
+    public func collectionView(_ collectionView: UICollectionView, didUnhighlightItemAt indexPath: IndexPath) {
+        let cell = collectionView.cellForItem(at: indexPath)
+        if self.HighlightedIndex == indexPath.section {
+            cell?.isHighlighted = true
+        }else{
+            cell?.isHighlighted = false
+        }
+    }
+    public func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
+        return true
     }
     
     
@@ -392,3 +460,46 @@ public class SheetView: UIView,UICollectionViewDelegate, UICollectionViewDataSou
         }
     }
 }
+
+
+//MARK: - sheetView cell 注册和复用
+extension SheetView {
+    
+    public func cellForItem(indexPath:IndexPath) ->UICollectionViewCell? {
+        return self.collectionView.cellForItem(at: indexPath)
+        
+    }
+    
+    public func indexPath(cell:UICollectionViewCell) ->IndexPath? {
+        return self.collectionView.indexPath(for: cell)
+    }
+    
+/// 此接口占时不能用因为数据类型问题
+//    public func indexPath(data:Any) ->Int? {
+//        let d = self.contentData.index(of: data)
+//        return d
+//    }
+    
+    public func sheetViewRegister(_ cellClass: Swift.AnyClass?, forCellWithReuseIdentifier identifier: String) {
+        self.collectionView.register(cellClass, forCellWithReuseIdentifier: identifier)
+    }
+    
+    public func sheetViewRegister(_ cellClass: Swift.AnyClass?, forSupplementViewWithReuseIdentifier identifier: String) {
+        self.collectionView.register(cellClass, forCellWithReuseIdentifier: identifier)
+    }
+    
+    public func dequenCellForData(_ section: Int, contentForIndexat index:Int,withReuseIdentifier Identifier:String) -> UICollectionViewCell? {
+            return self.collectionView.dequeueReusableCell(withReuseIdentifier: Identifier, for: IndexPath(item: index, section: section))
+        
+    }
+    
+    public func dequenCellForData(_ data: Any?, supplementForsectionAt section:Int,withReuseIdentifier Identifier:String) -> UICollectionViewCell {
+        return self.collectionView.dequeueReusableCell(withReuseIdentifier: Identifier, for: IndexPath(item: self.rowCount, section: section))
+    }
+    
+    public func dequenCellForData(_ data: Any?, headerForIndexAt index:Int,withReuseIdentifier Identifier:String) -> UICollectionViewCell {
+        return self.collectionView.dequeueReusableCell(withReuseIdentifier: Identifier, for: IndexPath(item: index, section: 0))
+    }
+}
+
+
